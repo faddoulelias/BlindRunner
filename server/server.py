@@ -26,15 +26,9 @@ last_saved_time = 0
 def receive():
     file = open("test.txt", "w")
     file.write(request.data.decode("utf-8"))
-    
-    global last_saved_time
-    if request.method == "POST":
-        img = readFile(request.data.decode("utf-8"))
-        img.save("test.png")
-    
-    print("Delay : " + str(time.time() - last_saved_time))
-    last_saved_time = time.time()
-    return "Received"
+    print(request.data.decode("utf-8"))
+    file.close()
+    return "success"
 
 @app.route("/")
 def home():
