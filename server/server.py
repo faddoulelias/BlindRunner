@@ -4,18 +4,18 @@ import numpy as np
 from flask import Flask, request, send_file
 
 def readFile(dataString):
-    w, h = 96, 96
-    data = np.zeros((h, w, 3), dtype=np.uint8)
-    data[0:256, 0:256] = [255, 0, 0]
-
-    lines = dataString.split("\n")
-    for i in range(len(lines)):
-        pixels = list(map(int, lines[i].split()))
-        for j in range(len(pixels)):
-            data[i][j] = [pixels[j], pixels[j], pixels[j]]
-
-    img = Image.fromarray(data, 'RGB')
-    return img
+    # the dataString represents an image
+    # each row is a row of the image
+    # each row consists of n pixels separated by ";"
+    # each pixel consists of 3 values separated by ","
+    image = []
+    rows = dataString.split("\n")[0:-1]
+    for row in rows:
+        pixels = row.split(";")[0:-1]
+    image.append([list(map(int, pixel.split(","))) for pixel in pixels])
+    
+    image = np.array(image, dtype=np.uint8)
+    return Image.fromarray(image)
     
     
 app = Flask(__name__)
@@ -24,10 +24,10 @@ last_saved_time = 0
 
 @app.route("/update", methods=["POST"])
 def receive():
-    file = open("test.txt", "w")
-    file.write(request.data.decode("utf-8"))
-    print(request.data.decode("utf-8"))
-    file.close()
+    imageData = request.data.decode("utf-8")
+    image = readFile(imageData)
+    image.save("test.png")
+    
     return "success"
 
 @app.route("/")

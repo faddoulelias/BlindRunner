@@ -4,19 +4,31 @@
 #include <cmath>
 #include <vector>
 
+Image::Image() {
+  width = 0;
+  height = 0;
+  pixels = std::vector<Pixel>();
+}
+
+Image::Image(int width, int height) {
+  this->width = width;
+  this->height = height;
+  pixels = std::vector<Pixel>(width * height);
+}
+
 Image Image::fromCamera(camera_fb_t *fb) {
-  Image image;
-  image.width = fb->width;
-  image.height = fb->height;
-  Serial.println(image.width, image.height);
-  image.pixels = (Pixel *)malloc(image.width * image.height * sizeof(Pixel));
+  Image image = Image(fb->width, fb->height);
+  Serial.println("Image width: " + String(image.width));
+  Serial.println("Image height: " + String(image.height));
 
   for (int i = 0; i < image.height; i++) {
     for (int j = 0; j < image.width; j++) {
       int index = i * image.width + j;
-      image.pixels[index].r = fb->buf[index * 3];
-      image.pixels[index].g = fb->buf[index * 3 + 1];
-      image.pixels[index].b = fb->buf[index * 3 + 2];
+      uint16_t pixel = ((uint16_t *)fb->buf)[index];
+      uint8_t r = ((pixel & 0xF800) >> 11) * 255 / 31;
+      uint8_t g = ((pixel & 0x07E0) >> 5) * 255 / 63;
+      uint8_t b = (pixel & 0x001F) * 255 / 31;
+      image.setPixel(j, i, Pixel(r, g, b));
     }
   }
 
@@ -25,16 +37,22 @@ Image Image::fromCamera(camera_fb_t *fb) {
 
 String Image::toString() {
   String result = "";
+  if (!result.reserve(height * (width * 12 + 1))) {
+    Serial.println("Failed to reserve memory for image string");
+    return result;
+  }
   for (int i = 0; i < height; i++) {
     for (int j = 0; j < width; j++) {
-      int index = i * width + j;
-      result += String(pixels[index].r) + "," + String(pixels[index].g) + "," +
-                String(pixels[index].b) + ";";
+      Pixel pixel = getPixel(j, i);
+      result +=
+          String(pixel.r) + "," + String(pixel.g) + "," + String(pixel.b) + ";";
     }
     result += "\n";
   }
-
   return result;
 }
 
 Pixel Image::getPixel(int x, int y) const { return pixels[y * width + x]; }
+void Image::setPixel(int x, int y, Pixel pixel) {
+  pixels[y * width + x] = pixel;
+}
