@@ -4,31 +4,22 @@
 #include <cmath>
 #include <vector>
 
-Image::Image() {
-  width = 0;
-  height = 0;
-  pixels = std::vector<Pixel>();
-}
+// ----------------------------------------------------------------------------
+// IMAGE CLASS ----------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
-Image::Image(int width, int height) {
-  this->width = width;
-  this->height = height;
-  pixels = std::vector<Pixel>(width * height);
-}
+Image::Image() : width(0), height(0), pixels() {}
+
+Image::Image(int width, int height)
+    : width(width), height(height), pixels(width * height) {}
 
 Image Image::fromCamera(camera_fb_t *fb) {
   Image image = Image(fb->width, fb->height);
-  Serial.println("Image width: " + String(image.width));
-  Serial.println("Image height: " + String(image.height));
 
-  for (int i = 0; i < image.height; i++) {
-    for (int j = 0; j < image.width; j++) {
-      int index = i * image.width + j;
-      uint16_t pixel = ((uint16_t *)fb->buf)[index];
-      uint8_t r = ((pixel & 0xF800) >> 11) * 255 / 31;
-      uint8_t g = ((pixel & 0x07E0) >> 5) * 255 / 63;
-      uint8_t b = (pixel & 0x001F) * 255 / 31;
-      image.setPixel(j, i, Pixel(r, g, b));
+  uint16_t *fb_data = (uint16_t *)fb->buf;
+  for (int i = 0; i < fb->height; i++) {
+    for (int j = 0; j < fb->width; j++) {
+      image.setPixel(j, i, Pixel(fb_data[i * fb->width + j]));
     }
   }
 
@@ -36,16 +27,15 @@ Image Image::fromCamera(camera_fb_t *fb) {
 }
 
 String Image::toString() {
-  String result = "";
-  if (!result.reserve(height * (width * 12 + 1))) {
+  String result;
+  if (!result.reserve(height * (width * 8 + 1))) {
     Serial.println("Failed to reserve memory for image string");
     return result;
   }
+
   for (int i = 0; i < height; i++) {
     for (int j = 0; j < width; j++) {
-      Pixel pixel = getPixel(j, i);
-      result +=
-          String(pixel.r) + "," + String(pixel.g) + "," + String(pixel.b) + ";";
+      result += "#" + getPixel(j, i).toHexString() + " ";
     }
     result += "\n";
   }
@@ -53,6 +43,28 @@ String Image::toString() {
 }
 
 Pixel Image::getPixel(int x, int y) const { return pixels[y * width + x]; }
+
 void Image::setPixel(int x, int y, Pixel pixel) {
   pixels[y * width + x] = pixel;
+}
+
+// ----------------------------------------------------------------------------
+// PIXEL CLASS ----------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+Pixel::Pixel() : r(0), g(0), b(0) {}
+
+Pixel::Pixel(uint8_t r, uint8_t g, uint8_t b) : r(r), g(g), b(b) {}
+
+Pixel::Pixel(uint16_t rgb565) {
+  rgb565 = (rgb565 >> 8) | (rgb565 << 8);
+  r = ((rgb565 >> 11) & 0x1F) * 255 / 31;
+  g = ((rgb565 >> 5) & 0x3F) * 255 / 63;
+  b = (rgb565 & 0x1F) * 255 / 31;
+}
+
+String Pixel::toHexString() const {
+  char hex[7];
+  snprintf(hex, sizeof(hex), "%02X%02X%02X", r, g, b);
+  return String(hex);
 }

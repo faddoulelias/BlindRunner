@@ -3,15 +3,18 @@
 
 #include "WString.h"
 #include "esp_camera.h"
+#include <Print.h>
 #include <vector>
 
 struct Pixel {
-  int r;
-  int g;
-  int b;
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
 
-  Pixel() : r(0), g(0), b(0) {}
-  Pixel(int r, int g, int b) : r(r), g(g), b(b) {}
+  Pixel();
+  Pixel(uint8_t r, uint8_t g, uint8_t b);
+  Pixel(uint16_t rgb565);
+  String toHexString() const;
 };
 
 class Image {

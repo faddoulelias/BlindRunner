@@ -2,34 +2,33 @@ import time
 from PIL import Image
 import numpy as np
 from flask import Flask, request, send_file
+import matplotlib.pyplot as plt
 
-def readFile(dataString):
-    # the dataString represents an image
-    # each row is a row of the image
-    # each row consists of n pixels separated by ";"
-    # each pixel consists of 3 values separated by ","
-    image = []
-    rows = dataString.split("\n")[0:-1]
-    for row in rows:
-        pixels = row.split(";")[0:-1]
-    image.append([list(map(int, pixel.split(","))) for pixel in pixels])
+def readFile(input_string):
+    rows = input_string.strip().split('\n')
+    height = len(rows)
+    width = len(rows[0].split(' ')) if height > 0 else 0
+    array = np.zeros((height, width, 3), dtype=np.uint8)
+
+    for i, row in enumerate(rows):
+        pixels = row.split(' ')[0:-1]
+        for j, pixel in enumerate(pixels):
+            array[i, j] = [int(pixel[1:3], 16), int(pixel[3:5], 16), int(pixel[5:7], 16)]
     
-    image = np.array(image, dtype=np.uint8)
-    return Image.fromarray(image)
+    image = Image.fromarray(array, 'RGB')
+    return image
     
     
 app = Flask(__name__)
 
-last_saved_time = 0
 
 @app.route("/update", methods=["POST"])
 def receive():
     imageData = request.data.decode("utf-8")
     image = readFile(imageData)
     image.save("test.png")
+    return "OK"
     
-    return "success"
-
 @app.route("/")
 def home():
     return send_file("test.png", mimetype='image/png')
